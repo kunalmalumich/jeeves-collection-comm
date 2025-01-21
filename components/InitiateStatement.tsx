@@ -28,6 +28,8 @@ export default function InitiateStatement() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
+        mode: 'cors',
         body: JSON.stringify({
           customerPhone,
           statementData: { month, amount, dueDate },

@@ -75,12 +75,12 @@ async function startStatementConversation(
     console.log("Initial template message sent")
 
     // Add a system message to the conversation
-    console.log("Adding system message to conversation")
+    /*console.log("Adding system message to conversation")
     await client.conversations.v1.conversations(conversation.sid).messages.create({
       author: "system",
       body: "Statement delivered. Customer service is ready to assist with any questions.",
     })
-    console.log("System message added")
+    console.log("System message added")*/
 
     // Set up webhook for handling responses
     console.log("Setting up webhook with URL:", env.WEBHOOK_URL)

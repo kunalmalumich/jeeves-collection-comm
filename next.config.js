@@ -1,3 +1,4 @@
+
 const nextConfig = {
   experimental: {
     serverActions: true,
@@ -15,5 +16,10 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+// Configure hostname and port for Replit
+if (process.env.REPL_SLUG) {
+  nextConfig.hostname = '0.0.0.0'
+  nextConfig.port = 3000
+}
 
+module.exports = nextConfig

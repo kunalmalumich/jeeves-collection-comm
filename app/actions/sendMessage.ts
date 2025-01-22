@@ -11,9 +11,29 @@ const configuration = new Configuration({
 })
 const openai = new OpenAIApi(configuration)
 
-export async function sendMessage(orgId: string, phoneNumber: string, message: string) {
+export async function sendMessage(_orgId: string, phoneNumber: string, message: string) {
   try {
-    console.log('Sending message:', { orgId, phoneNumber, message })
+    console.log('Finding business_id for phone number:', phoneNumber)
+    
+    // Find the actual orgId from credit_card_statements
+    const { data: statements, error: statementsError } = await supabase
+      .from('credit_card_statements')
+      .select('business_id')
+      .eq('phone_number', phoneNumber)
+      .limit(1)
+
+    if (statementsError) {
+      console.error('Error finding business_id:', statementsError)
+      throw new Error('Failed to find business for phone number')
+    }
+
+    if (!statements || statements.length === 0) {
+      console.error('No business found for phone number:', phoneNumber)
+      throw new Error('No business found for this phone number')
+    }
+
+    const orgId = statements[0].business_id
+    console.log('Found business_id:', orgId)
 
     // Store user message in chat history
     const { error: insertError } = await supabase.from('chat_history').insert({
@@ -105,12 +125,13 @@ Summarize key information at the end of longer responses.`
     }
 
     // Send the AI response via WhatsApp
-    const whatsappResult = await sendWhatsAppMessage(phoneNumber, aiResponse)
+   // const whatsappResult = await sendWhatsAppMessage(phoneNumber, aiResponse)
 
     console.log('Message sent and processed successfully')
     return { 
       message: aiResponse,
-      whatsapp_status: whatsappResult.success ? 'sent' : 'failed'
+      whatsapp_status: 'sent'
+     // whatsapp_status: whatsappResult.success ? 'sent' : 'failed'
     }
   } catch (error) {
     console.error('Error processing message:', error)

@@ -75,6 +75,7 @@ export async function uploadPDF(formData: FormData) {
         .from('credit_card_statements')
         .insert({
           business_id: orgId,
+          phone_number: phoneNumber,
           content: chunk,
           embedding,
           file_path: `${orgId}/${file.name}`,

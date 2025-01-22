@@ -90,11 +90,9 @@ async function startStatementConversation(
 
     await client.conversations.v1.conversations(conversation.sid).webhooks.create({
       target: "webhook",
-      configuration: {
-        url: env.WEBHOOK_URL,
-        filters: ["onMessageAdded"],
-        method: "POST"  // Explicitly set the method
-      },
+      "configuration.url": env.WEBHOOK_URL,
+      "configuration.filters": ["onMessageAdded"],
+      "configuration.method": "POST"
     })
     console.log("Webhook set up")
 

@@ -7,12 +7,12 @@ const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
 async function handleIncomingMessage(conversationSid: string, from: string, message: string) {
   try {
     // Check for automated responses first
-    if (message.toLowerCase().includes("balance") || message.toLowerCase().includes("due date")) {
+    if (message.toLowerCase().includes("avik") || message.toLowerCase().includes("kunal")) {
       let response = "Thank you for your message. Our team will respond shortly."
 
-      if (message.toLowerCase().includes("balance")) {
+      if (message.toLowerCase().includes("avik")) {
         response = "Your current balance information can be found on page 1 of your statement."
-      } else if (message.toLowerCase().includes("due date")) {
+      } else if (message.toLowerCase().includes("kunal")) {
         response = "Your payment due date is shown at the top of your statement."
       }
 
@@ -54,11 +54,9 @@ export async function POST(request: NextRequest) {
 
     console.log("Webhook received")
     
-    // Parse form data first
     const formData = await request.formData()
     console.log("Parsed form data:", Object.fromEntries(formData.entries()))
     
-    // Validate required fields
     const From = formData.get("From") as string
     const Body = formData.get("Body") as string
     
@@ -70,43 +68,67 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("Testing Twilio client...")
-    try {
-      const conversations1 = await client.conversations.v1.conversations.list({ limit: 1 })
-      console.log("Conversations fetch successful:", conversations1.length)
-    } catch (twilioError) {
-      console.error("Twilio client test failed:", twilioError)
-      throw new Error(`Twilio client error: ${twilioError.message}`)
-    }
+    // Create new conversation for each incoming message
+    console.log("Creating new conversation for:", From)
+    const conversation = await client.conversations.v1.conversations.create({
+      friendlyName: `Chat - ${From} - ${new Date().toISOString()}`,
+    })
 
-    // Get conversations
-    const conversations = await client.conversations.v1.conversations.list({ limit: 1 })
+
+    // First, let's log the exact values we're working with
+const cleanNumber = From.replace('whatsapp:', '')
+const cleanProxyNumber = env.TWILIO_WHATSAPP_FROM.replace('whatsapp:', '')
+
+console.log("Debugging participant creation:", {
+  conversationSid: conversation.sid,
+  cleanNumber,
+  cleanProxyNumber
+});
+
+try {
+  const participant = await client.conversations.v1.conversations(conversation.sid)
+    .participants
+    .create({
+      identity: cleanNumber,  // Using the clean number as identity
+      attributes: JSON.stringify({
+        whatsAppNumber: cleanNumber
+      }),
+      messagingBinding: {
+        type: 'whatsapp',
+        address: cleanNumber,
+        proxyAddress: cleanProxyNumber
+      }
+    });
     
-    let conversationSid
-    if (conversations.length === 0) {
-      console.log("Creating new conversation for:", From)
-      const conversation = await client.conversations.v1.conversations.create({
-        friendlyName: `User Initiated - ${From}`,
-      })
-      conversationSid = conversation.sid
-      
-      console.log("Adding participant to conversation:", conversationSid)
-      await client.conversations.v1.conversations(conversationSid).participants.create({
-        "messagingBinding.address": `whatsapp:${From}`,
-        "messagingBinding.proxyAddress": `whatsapp:${env.TWILIO_WHATSAPP_FROM}`,
-      })
-    } else {
-      conversationSid = conversations[0].sid
-      console.log("Using existing conversation:", conversationSid)
-    }
+  console.log("Successfully created participant:", participant);
+} catch (error) {
+  console.error("Detailed error in participant creation:", {
+    error: error.message,
+    code: error.code,
+    status: error.status,
+    details: error.details,
+    moreInfo: error.moreInfo
+  });
+  throw error;
+}
+    
+    
+    /*console.log("Adding participant to conversation:", conversation.sid)
+    await client.conversations.v1.conversations(conversation.sid).participants.create({
+      "messagingBinding.address": `whatsapp:${From.replace('whatsapp:', '')}`,
+      "messagingBinding.proxyAddress": `whatsapp:${env.TWILIO_WHATSAPP_FROM}`,
+    })*/
 
+
+    
     console.log("Handling incoming message")
-    await handleIncomingMessage(conversationSid, From, Body)
+    await handleIncomingMessage(conversation.sid, From, Body)
     
     return NextResponse.json({ 
       success: true,
       message: "Message processed successfully"
     })
+
   } catch (error) {
     console.error("Error handling incoming message:", error)
     return NextResponse.json(

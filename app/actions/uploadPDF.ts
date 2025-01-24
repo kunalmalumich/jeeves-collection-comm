@@ -1,10 +1,9 @@
 'use server'
 
-import { createClient } from '@supabase/supabase-js'
 import { env } from '../config/env'
 import { OpenAIApi, Configuration } from 'openai-edge'
 import { GoogleGenerativeAI } from "@google/generative-ai"
-
+import { createClient } from '@supabase/supabase-js'
 // Ensure we're using the correct environment variables
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 const configuration = new Configuration({
@@ -124,7 +123,7 @@ async function parsePDFWithGemini(file: File): Promise<string> {
     `Analyze this credit card statement PDF in detail. Focus on the following sections:
 Summary: Provide a brief overview including statement period, account number (last 4 digits), and total amount due.
 Transactions:
-List ALL transactions with their dates, descriptions, and amounts. Do not miss any row.
+List ALL transactions with user names, dates, descriptions, and amounts. Do not miss any row and any detail.
 Do not summarize or provide examples. Every single transaction must be included, regardless of the volume.
 If there are many transactions, continue listing them all. Do not stop or summarize due to length.
 Categorize each transaction (e.g., dining, travel, groceries)

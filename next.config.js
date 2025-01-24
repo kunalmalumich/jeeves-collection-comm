@@ -14,12 +14,11 @@ const nextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     WEBHOOK_URL: process.env.WEBHOOK_URL,
   },
-}
-
-// Configure hostname and port for Replit
-if (process.env.REPL_SLUG) {
-  nextConfig.hostname = '0.0.0.0'
-  nextConfig.port = 3000
+  // Use server configuration instead of hostname and port
+  server: process.env.REPL_SLUG ? {
+    host: '0.0.0.0',
+    port: 3000
+  } : {}
 }
 
 module.exports = nextConfig

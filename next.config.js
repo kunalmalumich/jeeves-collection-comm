@@ -3,6 +3,11 @@ const nextConfig = {
   experimental: {
     serverActions: true,
   },
+  watchOptions: {
+    followSymlinks: false,
+    ignored: ['**/node_modules', '**/.git'],
+    persistent: true,
+  },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,

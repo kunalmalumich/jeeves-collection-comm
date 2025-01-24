@@ -13,10 +13,7 @@ const nextConfig = {
     TWILIO_WHATSAPP_FROM: process.env.TWILIO_WHATSAPP_FROM,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     WEBHOOK_URL: process.env.WEBHOOK_URL,
-  },
-  // Use hostname and port configuration
-  hostname: process.env.REPL_SLUG ? '0.0.0.0' : 'localhost',
-  port: 3000
+  }
 }
 
 module.exports = nextConfig

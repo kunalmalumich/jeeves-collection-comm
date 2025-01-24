@@ -3,11 +3,6 @@ const nextConfig = {
   experimental: {
     serverActions: true,
   },
-  watchOptions: {
-    followSymlinks: false,
-    ignored: ['**/node_modules', '**/.git'],
-    persistent: true,
-  },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -19,11 +14,9 @@ const nextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     WEBHOOK_URL: process.env.WEBHOOK_URL,
   },
-  // Use server configuration instead of hostname and port
-  server: process.env.REPL_SLUG ? {
-    host: '0.0.0.0',
-    port: 3000
-  } : {}
+  // Use hostname and port configuration
+  hostname: process.env.REPL_SLUG ? '0.0.0.0' : 'localhost',
+  port: 3000
 }
 
 module.exports = nextConfig

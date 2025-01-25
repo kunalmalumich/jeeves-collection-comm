@@ -4,7 +4,7 @@ import { env } from "@/app/config/env";
 import { sendMessage } from "@/app/actions/sendMessage";
 import { sendWhatsAppMessage } from "@/app/actions/sendWhatsAppMessage";
 
-const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
 
 export async function POST(req: NextRequest) {
   try {

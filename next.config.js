@@ -15,7 +15,18 @@ const nextConfig = {
     WEBHOOK_URL: process.env.WEBHOOK_URL,
     TWILIO_TEMPLATE_CONTENT_SID: process.env.TWILIO_TEMPLATE_CONTENT_SID || '',
   },
-  output: 'standalone'
+  output: 'standalone',
+  webpack: (config) => {
+    return config;
+  },
+  webpackDevMiddleware: (config) => {
+    return config;
+  },
+  // Required for Replit - configure server to listen on 0.0.0.0
+  server: {
+    hostname: '0.0.0.0',
+    port: 3000
+  }
 }
 
 module.exports = nextConfig

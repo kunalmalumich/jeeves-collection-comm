@@ -23,6 +23,7 @@
     "pdfjs-dist": "^3.7.107",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "supports-color": "^10.0.0",
     "tailwind-merge": "^2.6.0",
     "twilio": "^5.4.2",
     "utf-8-validate": "^6.0.5"

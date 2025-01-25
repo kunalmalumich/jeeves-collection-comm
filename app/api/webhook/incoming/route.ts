@@ -77,6 +77,9 @@ export async function POST(request: NextRequest) {
 
     // First, let's log the exact values we're working with
 const cleanNumber = From.replace('whatsapp:', '')
+if (!env.TWILIO_WHATSAPP_FROM) {
+  throw new Error('TWILIO_WHATSAPP_FROM is not set')
+}
 const cleanProxyNumber = env.TWILIO_WHATSAPP_FROM.replace('whatsapp:', '')
 
 console.log("Debugging participant creation:", {

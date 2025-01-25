@@ -48,11 +48,11 @@ async function startStatementConversation(
       });
     } catch (error) {
       console.error("Detailed error in participant creation:", {
-        error: error.message,
-        code: error.code,
-        status: error.status,
-        details: error.details,
-        moreInfo: error.moreInfo
+        error: error instanceof Error ? error.message : String(error),
+        code: (error as any)?.code,
+        status: (error as any)?.status,
+        details: (error as any)?.details,
+        moreInfo: (error as any)?.moreInfo
       });
       throw error;
     }

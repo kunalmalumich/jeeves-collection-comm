@@ -5,10 +5,17 @@ import { OpenAIApi, Configuration } from 'openai-edge'
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { createClient } from '@supabase/supabase-js'
 // Ensure we're using the correct environment variables
-const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.OPENAI_API_KEY) {
+  throw new Error('Required environment variables are not set');
+}
+
+const supabase = createClient(
+  env.NEXT_PUBLIC_SUPABASE_URL,
+  env.SUPABASE_SERVICE_ROLE_KEY
+);
 const configuration = new Configuration({
   apiKey: env.OPENAI_API_KEY,
-})
+});
 const openai = new OpenAIApi(configuration)
 
 export async function uploadPDF(formData: FormData) {

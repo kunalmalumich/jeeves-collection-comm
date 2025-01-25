@@ -92,8 +92,8 @@ try {
   const participant = await client.conversations.v1.conversations(conversation.sid)
     .participants
     .create({
-      'messagingBindingAddress': `whatsapp:${cleanNumber}`,
-      'messagingBindingProxyAddress': `whatsapp:${cleanProxyNumber}`,
+      'messagingBinding.address': `whatsapp:${cleanNumber}`,
+      'messagingBinding.proxyAddress': `whatsapp:${cleanProxyNumber}`,
       'attributes': JSON.stringify({
         whatsAppNumber: cleanNumber
       })

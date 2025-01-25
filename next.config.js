@@ -13,7 +13,8 @@ const nextConfig = {
     TWILIO_WHATSAPP_FROM: process.env.TWILIO_WHATSAPP_FROM,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     WEBHOOK_URL: process.env.WEBHOOK_URL,
-  }
+  },
+  output: 'standalone'
 }
 
 module.exports = nextConfig

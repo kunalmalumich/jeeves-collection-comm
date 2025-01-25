@@ -42,7 +42,11 @@ async function handleIncomingMessage(conversationSid: string, from: string, mess
     }
   } catch (error) {
     console.error("Error handling message:", error)
-    throw error
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error(String(error));
+    }
   }
 }
 
@@ -53,13 +57,13 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Webhook received")
-    
+
     const formData = await request.formData()
     console.log("Parsed form data:", Object.fromEntries(formData.entries()))
-    
+
     const From = formData.get("From") as string
     const Body = formData.get("Body") as string
-    
+
     if (!From || !Body) {
       console.error("Missing required fields:", { From, Body })
       return NextResponse.json(
@@ -98,7 +102,7 @@ try {
         whatsAppNumber: cleanNumber
       })
     });
-    
+
   console.log("Successfully created participant:", participant);
 } catch (error) {
   console.error("Detailed error in participant creation:", {
@@ -110,8 +114,8 @@ try {
   });
   throw error;
 }
-    
-    
+
+
     /*console.log("Adding participant to conversation:", conversation.sid)
     await client.conversations.v1.conversations(conversation.sid).participants.create({
       "messagingBinding.address": `whatsapp:${From.replace('whatsapp:', '')}`,
@@ -119,10 +123,10 @@ try {
     })*/
 
 
-    
+
     console.log("Handling incoming message")
     await handleIncomingMessage(conversation.sid, From, Body)
-    
+
     return NextResponse.json({ 
       success: true,
       message: "Message processed successfully"

@@ -105,14 +105,15 @@ try {
 
   console.log("Successfully created participant:", participant);
 } catch (error) {
-  console.error("Detailed error in participant creation:", {
-    error: error.message,
-    code: error.code,
-    status: error.status,
-    details: error.details,
-    moreInfo: error.moreInfo
-  });
-  throw error;
+  if (error instanceof Error) {
+    console.error("Detailed error in participant creation:", {
+      message: error.message,
+      ...(error as any), // For additional Twilio error properties
+    });
+  } else {
+    console.error("Unknown error in participant creation:", error);
+  }
+  throw error instanceof Error ? error : new Error(String(error));
 }
 
 

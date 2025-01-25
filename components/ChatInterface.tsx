@@ -54,7 +54,7 @@ export default function ChatInterface() {
         id: Date.now() + 1,
         message: response.message,
         is_from_business: true,
-        whatsapp_status: response.whatsapp_status
+        whatsapp_status: response.whatsapp_status as 'sent' | 'failed' | undefined
       }
       setMessages(prevMessages => [...prevMessages, botMessage])
     } catch (error) {

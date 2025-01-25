@@ -36,15 +36,11 @@ async function startStatementConversation(
       const participant = await client.conversations.v1.conversations(conversation.sid)
         .participants
         .create({
-          identity: cleanNumber,  // Using the clean number as identity
-          attributes: JSON.stringify({
+          'messagingBindingAddress': formattedPhone,
+          'messagingBindingProxyAddress': `whatsapp:${cleanProxyNumber}`,
+          'attributes': JSON.stringify({
             whatsAppNumber: cleanNumber
-          }),
-          messagingBinding: {
-            type: 'whatsapp',
-            address: formattedPhone,
-            proxyAddress: `whatsapp:${cleanProxyNumber}`
-          }
+          })
         });
 
       console.log("Successfully created participant:", {

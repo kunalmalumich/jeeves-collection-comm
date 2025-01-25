@@ -5,6 +5,10 @@ import { env } from '../config/env'
 import { OpenAIApi, Configuration } from 'openai-edge'
 import { sendWhatsAppMessage } from './sendWhatsAppMessage'
 
+if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.OPENAI_API_KEY) {
+  throw new Error('Required environment variables are not set')
+}
+
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 const configuration = new Configuration({
   apiKey: env.OPENAI_API_KEY,

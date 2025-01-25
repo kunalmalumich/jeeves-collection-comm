@@ -21,11 +21,6 @@ const nextConfig = {
   },
   webpackDevMiddleware: (config) => {
     return config;
-  },
-  // Required for Replit - configure server to listen on 0.0.0.0
-  server: {
-    hostname: '0.0.0.0',
-    port: 3000
   }
 }
 

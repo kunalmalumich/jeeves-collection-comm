@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import twilio from "twilio"
 import { env } from "@/app/config/env"
 
-const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
+const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
 
 async function handleIncomingMessage(conversationSid: string, from: string, message: string) {
   try {

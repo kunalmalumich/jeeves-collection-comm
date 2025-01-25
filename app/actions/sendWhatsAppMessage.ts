@@ -3,7 +3,7 @@
 import { env } from '../config/env'
 import twilio from "twilio"
 
-const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
+const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
 
 function validatePhoneNumber(phoneNumber: string): string {
   const cleaned = phoneNumber.replace(/\D/g, '')

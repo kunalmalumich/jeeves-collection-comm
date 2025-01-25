@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import twilio from "twilio"
+import { Twilio } from "twilio";
 import { env } from "@/app/config/env"
 
-const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
+const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
 
 async function startBusinessConversation(customerPhone: string) {
   try {
@@ -67,4 +67,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

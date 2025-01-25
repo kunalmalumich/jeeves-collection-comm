@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import twilio from "twilio"
+import { Twilio } from "twilio";
 import { env } from "@/app/config/env"
 import { createClient } from '@supabase/supabase-js'
 
-const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
+const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
 const supabase = createClient(
   env.NEXT_PUBLIC_SUPABASE_URL || '',
   env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -16,12 +16,12 @@ async function startStatementConversation(
   console.log("Starting new statement conversation for:", customerPhone)
   try {
     const formattedPhone = `whatsapp:${customerPhone}`;
-    
+
     // Create new conversation
     const conversation = await client.conversations.v1.conversations.create({
       friendlyName: `Statement Discussion - ${customerPhone} - ${new Date().toISOString()}`,
     });
-    
+
     // Add the customer as a participant
     const cleanNumber = customerPhone;
     const cleanProxyNumber = env.TWILIO_WHATSAPP_FROM;
@@ -70,11 +70,11 @@ async function startStatementConversation(
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
-  
+
   if (latestStatement.error || !latestStatement.data) {
     throw new Error(`No statement found for phone number: ${customerPhone}`)
   }
-  
+
   const pdfUrl = latestStatement.data.public_url
 
     // Log the template variables for debugging
@@ -145,4 +145,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

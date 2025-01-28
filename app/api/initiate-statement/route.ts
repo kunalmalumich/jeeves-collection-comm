@@ -1,21 +1,23 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server";
 import { Twilio } from "twilio";
-import { env } from "@/app/config/env"
-import { createClient } from '@supabase/supabase-js'
+import { env } from "@/app/config/env";
+import { createClient } from "@supabase/supabase-js";
 
 export async function GET() {
   try {
     // Check Twilio credentials
-    const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
-    await client.api.accounts(env.TWILIO_ACCOUNT_SID).fetch()
+    const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+    await client.api.accounts(env.TWILIO_ACCOUNT_SID || "").fetch();
 
     // Check Supabase connection
     const supabase = createClient(
-      env.NEXT_PUBLIC_SUPABASE_URL || '',
-      env.SUPABASE_SERVICE_ROLE_KEY || ''
-    )
-    const { error } = await supabase.from('credit_card_statements').select('count', { count: 'exact', head: true })
-    
+      env.NEXT_PUBLIC_SUPABASE_URL || "",
+      env.SUPABASE_SERVICE_ROLE_KEY || "",
+    );
+    const { error } = await supabase
+      .from("credit_card_statements")
+      .select("count", { count: "exact", head: true });
+
     return NextResponse.json({
       status: "healthy",
       message: "API is working correctly",
@@ -26,34 +28,37 @@ export async function GET() {
         hasWhatsappFrom: !!env.TWILIO_WHATSAPP_FROM,
         hasSupabaseUrl: !!env.NEXT_PUBLIC_SUPABASE_URL,
         hasSupabaseKey: !!env.SUPABASE_SERVICE_ROLE_KEY,
-        hasTemplateContent: !!env.TWILIO_TEMPLATE_CONTENT_SID
+        hasTemplateContent: !!env.TWILIO_TEMPLATE_CONTENT_SID,
       },
       connections: {
         twilio: "connected",
-        supabase: error ? "error" : "connected"
-      }
-    })
+        supabase: error ? "error" : "connected",
+      },
+    });
   } catch (error) {
-    console.error("Health check failed:", error)
-    return NextResponse.json({
-      status: "error",
-      message: error instanceof Error ? error.message : "Unknown error",
-      timestamp: new Date().toISOString()
-    }, { status: 500 })
+    console.error("Health check failed:", error);
+    return NextResponse.json(
+      {
+        status: "error",
+        message: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
+    );
   }
 }
 
-const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
+const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
 const supabase = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL || '',
-  env.SUPABASE_SERVICE_ROLE_KEY || ''
-)
+  env.NEXT_PUBLIC_SUPABASE_URL || "",
+  env.SUPABASE_SERVICE_ROLE_KEY || "",
+);
 
 async function startStatementConversation(
   customerPhone: string,
   statementData: { month: string; amount: string; dueDate: string },
 ) {
-  console.log("Starting new statement conversation for:", customerPhone)
+  console.log("Starting new statement conversation for:", customerPhone);
   try {
     const formattedPhone = `whatsapp:${customerPhone}`;
 
@@ -69,22 +74,22 @@ async function startStatementConversation(
     console.log("Attempting to create participant with:", {
       conversationSid: conversation.sid,
       cleanNumber,
-      cleanProxyNumber
+      cleanProxyNumber,
     });
 
     try {
-      const participant = await client.conversations.v1.conversations(conversation.sid)
-        .participants
-        .create({
-          'identity': cleanNumber,
-          'messagingBinding.address': formattedPhone,
-          'messagingBinding.proxyAddress': `whatsapp:${cleanProxyNumber}`,
+      const participant = await client.conversations.v1
+        .conversations(conversation.sid)
+        .participants.create({
+          identity: cleanNumber,
+          "messagingBinding.address": formattedPhone,
+          "messagingBinding.proxyAddress": `whatsapp:${cleanProxyNumber}`,
         });
 
       console.log("Successfully created participant:", {
         participantSid: participant.sid,
         identity: participant.identity,
-        messagingBinding: participant.messagingBinding
+        messagingBinding: participant.messagingBinding,
       });
     } catch (error) {
       console.error("Detailed error in participant creation:", {
@@ -92,39 +97,41 @@ async function startStatementConversation(
         code: (error as any)?.code,
         status: (error as any)?.status,
         details: (error as any)?.details,
-        moreInfo: (error as any)?.moreInfo
+        moreInfo: (error as any)?.moreInfo,
       });
       throw error;
     }
 
     // First send the template message
-    console.log("Sending initial template message")
+    console.log("Sending initial template message");
     if (!env.TWILIO_TEMPLATE_CONTENT_SID) {
-      throw new Error("TWILIO_TEMPLATE_CONTENT_SID environment variable is not set")
+      throw new Error(
+        "TWILIO_TEMPLATE_CONTENT_SID environment variable is not set",
+      );
     }
 
-    const latestStatement = await supabase 
-    .from('credit_card_statements')
-    .select('public_url')
-    .eq('phone_number', customerPhone)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
+    const latestStatement = await supabase
+      .from("credit_card_statements")
+      .select("public_url")
+      .eq("phone_number", customerPhone)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
 
-  if (latestStatement.error || !latestStatement.data) {
-    throw new Error(`No statement found for phone number: ${customerPhone}`)
-  }
+    if (latestStatement.error || !latestStatement.data) {
+      throw new Error(`No statement found for phone number: ${customerPhone}`);
+    }
 
-  const pdfUrl = latestStatement.data.public_url
+    const pdfUrl = latestStatement.data.public_url;
 
     // Log the template variables for debugging
     console.log("Template variables:", {
       month: statementData.month,
       amount: statementData.amount,
-      dueDate: statementData.dueDate
-    })
+      dueDate: statementData.dueDate,
+    });
 
-   /* await client.messages.create({
+    /* await client.messages.create({
       from: `whatsapp:${env.TWILIO_WHATSAPP_FROM}`,
       to: formattedPhone,
       body: 'Your statement is ready', // Required default message
@@ -140,43 +147,53 @@ async function startStatementConversation(
     await client.messages.create({
       from: `whatsapp:${env.TWILIO_WHATSAPP_FROM}`,
       to: formattedPhone,
-      body: 'We hope you\'re doing well. Please find your latest credit statement attached for your review. If you have any questions or need further assistance, feel free to reach out to us via email at soporte@tryjeeves.com. Thank you for choosing Jeeves.',
+      body: "We hope you're doing well. Please find your latest credit statement attached for your review. If you have any questions or need further assistance, feel free to reach out to us via email at soporte@tryjeeves.com. Thank you for choosing Jeeves.",
       mediaUrl: [pdfUrl],
-      contentSid: env.TWILIO_TEMPLATE_CONTENT_SID
+      contentSid: env.TWILIO_TEMPLATE_CONTENT_SID,
     });
 
     // Finally add the welcome message
-    await client.conversations.v1.conversations(conversation.sid)
+    await client.conversations.v1
+      .conversations(conversation.sid)
       .messages.create({
         author: "system",
         body: "Welcome to your statement discussion. How can we help you today?",
       });
 
-    return conversation.sid
+    return conversation.sid;
   } catch (error) {
-    console.error("Error in statement conversation:", error)
-    throw error
+    console.error("Error in statement conversation:", error);
+    throw error;
   }
 }
 
 export async function POST(request: NextRequest) {
-  console.log("Received POST request to /api/initiate-statement")
+  console.log("Received POST request to /api/initiate-statement");
   try {
-    const body = await request.json()
-    console.log("Request body:", body)
+    const body = await request.json();
+    console.log("Request body:", body);
 
-    const { customerPhone, statementData } = body
+    const { customerPhone, statementData } = body;
 
     if (!customerPhone || !statementData) {
-      console.error("Missing required fields:", { customerPhone: !!customerPhone, statementData: !!statementData })
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+      console.error("Missing required fields:", {
+        customerPhone: !!customerPhone,
+        statementData: !!statementData,
+      });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
-    console.log("Initiating statement conversation for:", customerPhone)
-    const conversationSid = await startStatementConversation(customerPhone, statementData)
-    console.log("Conversation initiated with SID:", conversationSid)
+    console.log("Initiating statement conversation for:", customerPhone);
+    const conversationSid = await startStatementConversation(
+      customerPhone,
+      statementData,
+    );
+    console.log("Conversation initiated with SID:", conversationSid);
 
-    return NextResponse.json({ success: true, conversationSid })
+    return NextResponse.json({ success: true, conversationSid });
   } catch (error) {
     console.error("Error initiating statement conversation:", {
       error: error instanceof Error ? error.message : "Unknown error",
@@ -186,16 +203,16 @@ export async function POST(request: NextRequest) {
         hasTwilioToken: !!env.TWILIO_AUTH_TOKEN,
         hasWhatsappFrom: !!env.TWILIO_WHATSAPP_FROM,
         hasSupabaseUrl: !!env.NEXT_PUBLIC_SUPABASE_URL,
-        hasSupabaseKey: !!env.SUPABASE_SERVICE_ROLE_KEY
-      }
-    })
+        hasSupabaseKey: !!env.SUPABASE_SERVICE_ROLE_KEY,
+      },
+    });
     return NextResponse.json(
-      { 
-        error: "Internal server error", 
+      {
+        error: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error",
-        context: error instanceof Error ? error.stack : undefined
+        context: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 },
-    )
+    );
   }
 }

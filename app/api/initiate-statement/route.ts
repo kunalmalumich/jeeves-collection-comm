@@ -3,6 +3,46 @@ import { Twilio } from "twilio";
 import { env } from "@/app/config/env"
 import { createClient } from '@supabase/supabase-js'
 
+export async function GET() {
+  try {
+    // Check Twilio credentials
+    const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
+    await client.api.accounts(env.TWILIO_ACCOUNT_SID).fetch()
+
+    // Check Supabase connection
+    const supabase = createClient(
+      env.NEXT_PUBLIC_SUPABASE_URL || '',
+      env.SUPABASE_SERVICE_ROLE_KEY || ''
+    )
+    const { error } = await supabase.from('credit_card_statements').select('count', { count: 'exact', head: true })
+    
+    return NextResponse.json({
+      status: "healthy",
+      message: "API is working correctly",
+      timestamp: new Date().toISOString(),
+      environment: {
+        hasTwilioSid: !!env.TWILIO_ACCOUNT_SID,
+        hasTwilioToken: !!env.TWILIO_AUTH_TOKEN,
+        hasWhatsappFrom: !!env.TWILIO_WHATSAPP_FROM,
+        hasSupabaseUrl: !!env.NEXT_PUBLIC_SUPABASE_URL,
+        hasSupabaseKey: !!env.SUPABASE_SERVICE_ROLE_KEY,
+        hasTemplateContent: !!env.TWILIO_TEMPLATE_CONTENT_SID
+      },
+      connections: {
+        twilio: "connected",
+        supabase: error ? "error" : "connected"
+      }
+    })
+  } catch (error) {
+    console.error("Health check failed:", error)
+    return NextResponse.json({
+      status: "error",
+      message: error instanceof Error ? error.message : "Unknown error",
+      timestamp: new Date().toISOString()
+    }, { status: 500 })
+  }
+}
+
 const client = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
 const supabase = createClient(
   env.NEXT_PUBLIC_SUPABASE_URL || '',

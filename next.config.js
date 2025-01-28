@@ -1,10 +1,7 @@
+
 const nextConfig = {
   experimental: {
     serverActions: true,
-  },
-  server: {
-    port: 3000,
-    host: '0.0.0.0'
   },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,

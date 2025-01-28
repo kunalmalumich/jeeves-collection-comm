@@ -82,8 +82,14 @@ async function startStatementConversation(
         .conversations(conversation.sid)
         .participants.create({
           identity: cleanNumber,
-          "messagingBinding.address": formattedPhone,
-          "messagingBinding.proxyAddress": `whatsapp:${cleanProxyNumber}`,
+          attributes: JSON.stringify({
+            whatsAppNumber: cleanNumber,
+          }),
+          messagingBinding: {
+            type: "whatsapp",
+            address: formattedPhone,
+            proxyAddress: `whatsapp:${cleanProxyNumber}`,
+          },
         });
 
       console.log("Successfully created participant:", {
@@ -110,6 +116,7 @@ async function startStatementConversation(
       );
     }
 
+    // Get latest statement
     const latestStatement = await supabase
       .from("credit_card_statements")
       .select("public_url")
@@ -124,7 +131,7 @@ async function startStatementConversation(
 
     const pdfUrl = latestStatement.data.public_url;
 
-    // Log the template variables for debugging
+    // Log template variables
     console.log("Template variables:", {
       month: statementData.month,
       amount: statementData.amount,
@@ -143,7 +150,7 @@ async function startStatementConversation(
       })
     }) */
 
-    // Then send WhatsApp message with PDF
+    // Send WhatsApp message with PDF
     await client.messages.create({
       from: `whatsapp:${env.TWILIO_WHATSAPP_FROM}`,
       to: formattedPhone,
@@ -152,7 +159,7 @@ async function startStatementConversation(
       contentSid: env.TWILIO_TEMPLATE_CONTENT_SID,
     });
 
-    // Finally add the welcome message
+    // Add welcome message to conversation
     await client.conversations.v1
       .conversations(conversation.sid)
       .messages.create({
@@ -169,14 +176,17 @@ async function startStatementConversation(
 
 export async function POST(request: NextRequest) {
   console.log("Received POST request to /api/initiate-statement");
-  console.log("Request headers:", Object.fromEntries(request.headers.entries()));
+  console.log(
+    "Request headers:",
+    Object.fromEntries(request.headers.entries()),
+  );
   console.log("Environment:", {
     NEXT_PUBLIC_APP_URL: env.NEXT_PUBLIC_APP_URL,
     TWILIO_WHATSAPP_FROM: !!env.TWILIO_WHATSAPP_FROM,
     TWILIO_ACCOUNT_SID: !!env.TWILIO_ACCOUNT_SID,
-    SUPABASE_URL: !!env.NEXT_PUBLIC_SUPABASE_URL
+    SUPABASE_URL: !!env.NEXT_PUBLIC_SUPABASE_URL,
   });
-  
+
   try {
     const body = await request.json();
     console.log("Request body:", body);
@@ -202,9 +212,15 @@ export async function POST(request: NextRequest) {
     console.log("Conversation initiated with SID:", conversationSid);
 
     const response = NextResponse.json({ success: true, conversationSid });
-    response.headers.set('Access-Control-Allow-Origin', '*');
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    response.headers.set(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS",
+    );
+    response.headers.set(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization",
+    );
     return response;
   } catch (error) {
     console.error("Error initiating statement conversation:", {

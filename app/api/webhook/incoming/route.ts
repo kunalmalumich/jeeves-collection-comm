@@ -2,6 +2,15 @@ import { type NextRequest, NextResponse } from "next/server"
 import twilio from "twilio"
 import { env } from "@/app/config/env"
 
+export async function GET() {
+  return NextResponse.json({
+    status: "healthy",
+    message: "Webhook API is working correctly",
+    timestamp: new Date().toISOString(),
+    webhook_url: env.WEBHOOK_URL
+  });
+}
+
 const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
 
 async function handleIncomingMessage(conversationSid: string, from: string, message: string) {

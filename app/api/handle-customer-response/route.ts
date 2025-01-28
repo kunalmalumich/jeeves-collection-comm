@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
 import { env } from "@/app/config/env";
@@ -5,6 +6,14 @@ import { sendMessage } from "@/app/actions/sendMessage";
 import { sendWhatsAppMessage } from "@/app/actions/sendWhatsAppMessage";
 
 const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+
+export async function GET() {
+  return NextResponse.json({ 
+    status: "healthy",
+    message: "API is working correctly",
+    timestamp: new Date().toISOString()
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,7 +64,6 @@ async function handleCustomerResponse(
       .conversations(conversationSid)
       .messages.list({ limit: 1 });
 
-    // Remove 'whatsapp:' prefix from phone number
     const cleanPhoneNumber = message.author.replace("whatsapp:", "");
     console.log("Cleaned phone number:", cleanPhoneNumber);
 
@@ -75,7 +83,6 @@ async function handleCustomerResponse(
       throw new Error("No message content received from AI");
     }
 
-    // Add the message to the conversation
     await client.conversations.v1
       .conversations(conversationSid)
       .messages.create({
@@ -83,7 +90,6 @@ async function handleCustomerResponse(
         body: messageResult.message,
       });
 
-    // Send via WhatsApp using sendWhatsAppMessage
     const whatsappResult = await sendWhatsAppMessage(
       cleanPhoneNumber,
       messageResult.message,

@@ -78,7 +78,7 @@ async function startStatementConversation(
     });
 
     try {
-      const participant = await client.conversations.v1
+      const participant = await (client.conversations.v1
         .conversations(conversation.sid)
         .participants.create({
           identity: cleanNumber,
@@ -86,11 +86,11 @@ async function startStatementConversation(
             whatsAppNumber: cleanNumber,
           }),
           messagingBinding: {
-            type: "whatsapp",
+            type: 'whatsapp',
             address: formattedPhone,
             proxyAddress: `whatsapp:${cleanProxyNumber}`,
           },
-        });
+        } as any) as any); // Type assertion to bypass TypeScript checks
 
       console.log("Successfully created participant:", {
         participantSid: participant.sid,

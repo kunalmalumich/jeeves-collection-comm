@@ -118,16 +118,6 @@ export default function UploadForm() {
         </button>
         {uploadStatus && <p className="mt-2">{uploadStatus}</p>}
       </form>
-      <div>
-        <button
-          onClick={handleSendStatement}
-          disabled={isSendingStatement || !orgId || !phoneNumber}
-          className="bg-green-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
-        >
-          {isSendingStatement ? "Sending..." : "Send Statement"}
-        </button>
-        {sendStatementStatus && <p className="mt-2">{sendStatementStatus}</p>}
-      </div>
     </div>
   )
 }

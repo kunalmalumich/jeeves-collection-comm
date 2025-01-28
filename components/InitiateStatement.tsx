@@ -9,15 +9,12 @@ export default function InitiateStatement() {
   }, [])
   console.log("NEXT_PUBLIC_APP_URL:", env.NEXT_PUBLIC_APP_URL)
   const [customerPhone, setCustomerPhone] = useState("")
-  const [month, setMonth] = useState("")
-  const [amount, setAmount] = useState("")
-  const [dueDate, setDueDate] = useState("")
   const [status, setStatus] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setStatus("Initiating statement conversation...")
-    console.log("Initiating statement conversation with data:", { customerPhone, month, amount, dueDate })
+    console.log("Initiating statement conversation with phone:", customerPhone)
 
     try {
       const url = `${env.NEXT_PUBLIC_APP_URL}/api/initiate-statement`
@@ -32,7 +29,7 @@ export default function InitiateStatement() {
         mode: 'cors',
         body: JSON.stringify({
           customerPhone,
-          statementData: { month, amount, dueDate },
+          statementData: {} // Empty object since we're not using these fields
         }),
       })
 
@@ -71,45 +68,6 @@ export default function InitiateStatement() {
             id="customerPhone"
             value={customerPhone}
             onChange={(e) => setCustomerPhone(e.target.value)}
-            required
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div>
-          <label htmlFor="month" className="block mb-2">
-            Statement Month:
-          </label>
-          <input
-            type="text"
-            id="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            required
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div>
-          <label htmlFor="amount" className="block mb-2">
-            Statement Amount:
-          </label>
-          <input
-            type="text"
-            id="amount"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div>
-          <label htmlFor="dueDate" className="block mb-2">
-            Due Date:
-          </label>
-          <input
-            type="text"
-            id="dueDate"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
             required
             className="w-full p-2 border rounded"
           />

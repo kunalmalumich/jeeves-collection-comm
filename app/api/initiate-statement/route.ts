@@ -80,13 +80,8 @@ async function startStatementConversation(
   
   const pdfUrl = latestStatement.data.public_url
 
-    // Log the template variables for debugging
-    console.log("Template variables:", {
-      month: statementData.month,
-      amount: statementData.amount,
-      dueDate: statementData.dueDate
-    })
-
+  console.log("PDF URL Kunal :", pdfUrl)
+ 
    /* await client.messages.create({
       from: `whatsapp:${env.TWILIO_WHATSAPP_FROM}`,
       to: formattedPhone,
@@ -100,12 +95,19 @@ async function startStatementConversation(
     }) */
 
     // Then send WhatsApp message with PDF
-    await client.messages.create({
+    const message_1 = await client.messages.create({
       from: `whatsapp:${env.TWILIO_WHATSAPP_FROM}`,
       to: formattedPhone,
       body: 'We hope you\'re doing well. Please find your latest credit statement attached for your review. If you have any questions or need further assistance, feel free to reach out to us via email at soporte@tryjeeves.com. Thank you for choosing Jeeves.',
       mediaUrl: [pdfUrl],
       contentSid: env.TWILIO_TEMPLATE_CONTENT_SID
+    });
+
+    console.log("Twilio Message Details:", {
+      originalPdfUrl: pdfUrl,
+      twilioMediaUrl: message_1.mediaUrl?.[0],
+      numMedia: message_1.numMedia,
+      status: message_1.status
     });
 
     // Finally add the welcome message

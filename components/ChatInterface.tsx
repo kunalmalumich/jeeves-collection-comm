@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { sendMessage } from '../app/actions/sendMessage'
+import { createClient } from '@supabase/supabase-js'
+import { env } from '../app/config/env'
 
 interface Message {
   id: number;
@@ -10,12 +12,17 @@ interface Message {
   whatsapp_status?: 'sent' | 'failed';
 }
 
+const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [orgId, setOrgId] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [testPhone, setTestPhone] = useState('')
+  const [pdfUrl, setPdfUrl] = useState('')
+  const [testStatus, setTestStatus] = useState('')
 
   useEffect(() => {
     // Load chat history when component mounts
@@ -68,6 +75,32 @@ export default function ChatInterface() {
       setMessages(prevMessages => [...prevMessages, errorMessage]);
     } finally {
       setIsLoading(false)
+    }
+  }
+  
+  const handleTestPDF = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setTestStatus('Fetching latest statement...')
+    setPdfUrl('')
+    
+    try {
+      const latestStatement = await supabase 
+        .from('credit_card_statements')
+        .select('public_url')
+        .eq('phone_number', testPhone)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      
+      if (latestStatement.error || !latestStatement.data) {
+        throw new Error(`No statement found for phone number: ${testPhone}`)
+      }
+      
+      setPdfUrl(latestStatement.data.public_url)
+      setTestStatus('Statement found!')
+    } catch (error) {
+      console.error('Error fetching statement:', error)
+      setTestStatus(error instanceof Error ? error.message : 'Failed to fetch statement')
     }
   }
 
@@ -128,6 +161,41 @@ export default function ChatInterface() {
           {isLoading ? 'Sending...' : 'Send'}
         </button>
       </form>
+      <div className="border-t mt-8 pt-8">
+        <h3 className="text-lg font-semibold mb-4">Test Latest Statement PDF</h3>
+        <form onSubmit={handleTestPDF} className="space-y-4">
+          <div>
+            <label htmlFor="testPhone" className="block mb-2">Test Phone Number:</label>
+            <input
+              type="tel"
+              id="testPhone"
+              value={testPhone}
+              onChange={(e) => setTestPhone(e.target.value)}
+              required
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Test Statement
+          </button>
+        </form>
+        {testStatus && <p className="mt-4">{testStatus}</p>}
+        {pdfUrl && (
+          <div className="mt-4">
+            <a 
+              href={pdfUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:underline"
+            >
+              View PDF Statement
+            </a>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

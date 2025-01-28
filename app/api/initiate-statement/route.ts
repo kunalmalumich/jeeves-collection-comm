@@ -138,9 +138,23 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, conversationSid })
   } catch (error) {
-    console.error("Error initiating statement conversation:", error)
+    console.error("Error initiating statement conversation:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      env: {
+        hasTwilioSid: !!env.TWILIO_ACCOUNT_SID,
+        hasTwilioToken: !!env.TWILIO_AUTH_TOKEN,
+        hasWhatsappFrom: !!env.TWILIO_WHATSAPP_FROM,
+        hasSupabaseUrl: !!env.NEXT_PUBLIC_SUPABASE_URL,
+        hasSupabaseKey: !!env.SUPABASE_SERVICE_ROLE_KEY
+      }
+    })
     return NextResponse.json(
-      { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
+      { 
+        error: "Internal server error", 
+        details: error instanceof Error ? error.message : "Unknown error",
+        context: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 },
     )
   }

@@ -1,0 +1,50 @@
+page-3f97e813a5c44844.js:1 
+ 
+ POST https://jeeves-collection-comm-kunalmalhotrach.replit.app/jeeves-collection-comm-kunalmalhotrach.replit.app/api/initiate-statement 404 (Not Found)
+handleSubmit	@	page-3f97e813a5c44844.js:1
+Ii	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Oi	@	bf6a786c-39923c9b2fb5ccf9.js:9
+(anonymous)	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Pn	@	bf6a786c-39923c9b2fb5ccf9.js:9
+an	@	bf6a786c-39923c9b2fb5ccf9.js:9
+(anonymous)	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Ck	@	bf6a786c-39923c9b2fb5ccf9.js:9
+nl	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Bm	@	bf6a786c-39923c9b2fb5ccf9.js:9
+zm	@	bf6a786c-39923c9b2fb5ccf9.js:9
+ym	@	bf6a786c-39923c9b2fb5ccf9.js:9
+page-3f97e813a5c44844.js:1 Response status: 404
+290-beda9c64ea8d4dc2.js:1 
+ Fetch error: Error: HTTP error! status: 404
+    at handleSubmit (page-3f97e813a5c44844.js:1:4770)
+window.console.error	@	290-beda9c64ea8d4dc2.js:1
+handleSubmit	@	page-3f97e813a5c44844.js:1
+await in handleSubmit		
+Ii	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Oi	@	bf6a786c-39923c9b2fb5ccf9.js:9
+(anonymous)	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Pn	@	bf6a786c-39923c9b2fb5ccf9.js:9
+an	@	bf6a786c-39923c9b2fb5ccf9.js:9
+(anonymous)	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Ck	@	bf6a786c-39923c9b2fb5ccf9.js:9
+nl	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Bm	@	bf6a786c-39923c9b2fb5ccf9.js:9
+zm	@	bf6a786c-39923c9b2fb5ccf9.js:9
+ym	@	bf6a786c-39923c9b2fb5ccf9.js:9
+290-beda9c64ea8d4dc2.js:1 
+ Error details: Error: HTTP error! status: 404
+    at handleSubmit (https://jeeves-collection-comm-kunalmalhotrach.replit.app/_next/static/chunks/app/page-3f97e813a5c44844.js:1:4770)
+window.console.error	@	290-beda9c64ea8d4dc2.js:1
+handleSubmit	@	page-3f97e813a5c44844.js:1
+await in handleSubmit		
+Ii	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Oi	@	bf6a786c-39923c9b2fb5ccf9.js:9
+(anonymous)	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Pn	@	bf6a786c-39923c9b2fb5ccf9.js:9
+an	@	bf6a786c-39923c9b2fb5ccf9.js:9
+(anonymous)	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Ck	@	bf6a786c-39923c9b2fb5ccf9.js:9
+nl	@	bf6a786c-39923c9b2fb5ccf9.js:9
+Bm	@	bf6a786c-39923c9b2fb5ccf9.js:9
+zm	@	bf6a786c-39923c9b2fb5ccf9.js:9
+ym	@	bf6a786c-39923c9b2fb5ccf9.js:9

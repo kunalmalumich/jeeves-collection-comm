@@ -169,6 +169,14 @@ async function startStatementConversation(
 
 export async function POST(request: NextRequest) {
   console.log("Received POST request to /api/initiate-statement");
+  console.log("Request headers:", Object.fromEntries(request.headers.entries()));
+  console.log("Environment:", {
+    NEXT_PUBLIC_APP_URL: env.NEXT_PUBLIC_APP_URL,
+    TWILIO_WHATSAPP_FROM: !!env.TWILIO_WHATSAPP_FROM,
+    TWILIO_ACCOUNT_SID: !!env.TWILIO_ACCOUNT_SID,
+    SUPABASE_URL: !!env.NEXT_PUBLIC_SUPABASE_URL
+  });
+  
   try {
     const body = await request.json();
     console.log("Request body:", body);
@@ -193,7 +201,11 @@ export async function POST(request: NextRequest) {
     );
     console.log("Conversation initiated with SID:", conversationSid);
 
-    return NextResponse.json({ success: true, conversationSid });
+    const response = NextResponse.json({ success: true, conversationSid });
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return response;
   } catch (error) {
     console.error("Error initiating statement conversation:", {
       error: error instanceof Error ? error.message : "Unknown error",

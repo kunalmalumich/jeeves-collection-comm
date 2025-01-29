@@ -31,7 +31,7 @@ async function handleIncomingMessage(conversationSid: string, from: string, mess
       })
     } else {
       // For non-automated responses, call handle-customer-response
-      const response = await fetch(`${env.NEXT_PUBLIC_APP_URL}/api/handle-customer-response`, {
+      const response = await fetch(`${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/api/handle-customer-response`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

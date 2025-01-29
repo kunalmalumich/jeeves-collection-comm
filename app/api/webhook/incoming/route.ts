@@ -102,19 +102,20 @@ console.log("Debugging participant creation:", {
 });
 
 try {
-  const participant = await (client.conversations.v1.conversations(conversation.sid)
+  const participant = await (client.conversations.v1
+    .conversations(conversation.sid)
     .participants
     .create({
       identity: cleanNumber,
       attributes: JSON.stringify({
-        whatsAppNumber: cleanNumber
+        whatsAppNumber: cleanNumber,
       }),
       messagingBinding: {
         type: 'whatsapp',
-        address: From, // Use original From with whatsapp: prefix
-        proxyAddress: `whatsapp:${env.TWILIO_WHATSAPP_FROM}`
-      }
-    }) as any) as any;
+        address: From,
+        proxyAddress: `whatsapp:${env.TWILIO_WHATSAPP_FROM}`,
+      },
+    } as any) as any);
 
   console.log("Successfully created participant:", participant);
 } catch (error) {

@@ -30,6 +30,9 @@ async function handleIncomingMessage(conversationSid: string, from: string, mess
         body: response,
       })
     } else {
+      if (!env.NEXT_PUBLIC_APP_URL) {
+        throw new Error('NEXT_PUBLIC_APP_URL is not set in environment variables');
+      }
       // For non-automated responses, call handle-customer-response
       const response = await fetch(`${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/api/handle-customer-response`, {
         method: 'POST',

@@ -48,6 +48,11 @@ Do not include any other text in your response.`,
   });
 
   const translationResult = await translationResponse.json();
+  if (!translationResult.choices || !translationResult.choices[0] || !translationResult.choices[0].message) {
+    console.error('Invalid translation response:', translationResult);
+    throw new Error('Failed to get valid translation response from OpenAI');
+  }
+  
   const parsedTranslation = JSON.parse(
     translationResult.choices[0].message.content,
   );

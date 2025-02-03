@@ -143,7 +143,9 @@ export async function sendMessage(
 
 1. Review the context and query carefully
 2. If the query is not in English, ensure you fully understand it using this English translation for reference: "${translationResult.isEnglish ? message : translationResult.englishVersion}"
-3. Provide your response in English if the original query was in English, otherwise respond in the same language as the original query: "${translationResult.originalText}"
+3. IMPORTANT LANGUAGE INSTRUCTION: ${translationResult.isEnglish ? 
+    "The original query was in English, so respond in English" : 
+    `The original query was in another language (specifically the language of: "${translationResult.originalText}"). You MUST respond in that same language, not in English`}
 
 Follow these response guidelines:
 - Provide information strictly based on the given statement context

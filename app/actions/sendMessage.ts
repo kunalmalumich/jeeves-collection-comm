@@ -198,6 +198,28 @@ ${translationResult.englishVersion}`
       ],
     });
 
+    // Log the complete request being sent to the LLM
+    console.log("Complete LLM Request:", {
+      model: "gpt-4",
+      context: context,
+      originalQuery: translationResult.originalText,
+      isEnglish: translationResult.isEnglish,
+      englishTranslation: !translationResult.isEnglish ? translationResult.englishVersion : null,
+      fullPrompt: `Hello! I'm looking at my credit card statement and have a question. Here's the relevant information:
+      CONTEXT:
+    ${context}
+
+ORIGINAL QUERY (${translationResult.isEnglish ? "English" : "Non-English"}):
+${translationResult.originalText}
+
+${
+  !translationResult.isEnglish
+    ? `ENGLISH TRANSLATION:
+${translationResult.englishVersion}`
+    : ""
+}`
+    });
+
     const chatResult = await chatResponse.json();
     console.log("Chat result received:", JSON.stringify(chatResult, null, 2));
     const aiResponse = chatResult.choices[0].message.content;

@@ -1,3 +1,4 @@
+
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
@@ -22,6 +23,54 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
+async function getEnhancedMultilingualEmbedding(message: string) {
+  const translationResponse = await openai.createChatCompletion({
+    model: "gpt-4",
+    messages: [
+      {
+        role: "system",
+        content: `You are a translation assistant. For the given text:
+1. Detect if it's not in English
+2. If not English, translate to English while preserving key terms
+3. Return ONLY a JSON object in this format:
+{
+  "isEnglish": boolean,
+  "englishVersion": "the English translation or original text",
+  "originalText": "the original input text"
+}
+Do not include any other text in your response.`
+      },
+      {
+        role: "user",
+        content: message
+      }
+    ],
+    temperature: 0
+  });
+
+  const translationResult = await translationResponse.json();
+  const parsedTranslation = JSON.parse(translationResult.choices[0].message.content);
+
+  const textsToEmbed = [parsedTranslation.originalText];
+  if (!parsedTranslation.isEnglish) {
+    textsToEmbed.push(parsedTranslation.englishVersion);
+  }
+
+  const embeddingsResponse = await openai.createEmbedding({
+    model: "text-embedding-ada-002",
+    input: textsToEmbed,
+  });
+  const embeddingResult = await embeddingsResponse.json();
+
+  return {
+    originalEmbedding: embeddingResult.data[0].embedding,
+    englishEmbedding: parsedTranslation.isEnglish ? 
+      embeddingResult.data[0].embedding : 
+      embeddingResult.data[1].embedding,
+    translationResult: parsedTranslation
+  };
+}
+
 export async function sendMessage(
   _orgId: string,
   phoneNumber: string,
@@ -30,7 +79,6 @@ export async function sendMessage(
   try {
     console.log("Finding business_id for phone number:", phoneNumber);
 
-    // Find the actual orgId from credit_card_statements
     const { data: statements, error: statementsError } = await supabase
       .from("credit_card_statements")
       .select("business_id")
@@ -50,7 +98,6 @@ export async function sendMessage(
     const orgId = statements[0].business_id;
     console.log("Found business_id:", orgId);
 
-    // Store user message in chat history
     const { error: insertError } = await supabase.from("chat_history").insert({
       business_id: orgId,
       phone_number: phoneNumber,
@@ -63,79 +110,82 @@ export async function sendMessage(
       throw insertError;
     }
 
-    // Create embedding for the user's message
-    const embeddingResponse = await openai.createEmbedding({
-      model: "text-embedding-ada-002",
-      input: message,
-    });
+    const { originalEmbedding, englishEmbedding, translationResult } = 
+      await getEnhancedMultilingualEmbedding(message);
 
-    const embeddingResult = await embeddingResponse.json();
-    const embedding = embeddingResult.data[0].embedding;
-
-    // Search for relevant content in the database
-    const { data: documents, error: matchError } = await supabase.rpc(
-      "match_documents",
-      {
-        query_embedding: embedding,
+    const [originalResults, englishResults] = await Promise.all([
+      supabase.rpc("match_documents", {
+        query_embedding: originalEmbedding,
         match_threshold: 0.6,
-        match_count: 1000,
+        match_count: 500,
         p_business_id: orgId,
-      },
-    );
+      }),
+      supabase.rpc("match_documents", {
+        query_embedding: englishEmbedding,
+        match_threshold: 0.6,
+        match_count: 500,
+        p_business_id: orgId,
+      })
+    ]);
 
-    if (matchError) {
-      console.error("Error matching documents:", matchError);
-      throw matchError;
+    if (originalResults.error || englishResults.error) {
+      console.error("Error matching documents:", originalResults.error || englishResults.error);
+      throw originalResults.error || englishResults.error;
     }
 
-    // Prepare context from matched documents
-    const context = documents.map((doc: any) => doc.content).join("\n\n");
+    const allDocuments = [...(originalResults.data || [])];
+    if (!translationResult.isEnglish) {
+      const seenIds = new Set(allDocuments.map(doc => doc.id));
+      englishResults.data?.forEach(doc => {
+        if (!seenIds.has(doc.id)) {
+          allDocuments.push(doc);
+          seenIds.add(doc.id);
+        }
+      });
+    }
 
-    // If no context is found, provide a default response
-    /*if (!context) {
-      const defaultResponse = "I'm sorry, but I couldn't find any relevant information in the credit card statements for your question. Could you please rephrase your question or ask about a different aspect of the statement?"
-      const whatsappResult = await sendWhatsAppMessage(phoneNumber, defaultResponse)
-      return { message: defaultResponse, whatsapp_status: whatsappResult.success ? 'sent' : 'failed' }
-    }*/
+    const sortedDocuments = allDocuments
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 1000);
 
-    // Generate response using OpenAI
+    const context = sortedDocuments.map(doc => doc.content).join('\n\n');
+
     const chatResponse = await openai.createChatCompletion({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
           content: `You are a friendly and helpful customer support representative for a credit card company. Follow these steps precisely:
 
-1. First, detect the language of the user's message
-2. Then, understand the user's query (translating to English in your mind)
-3. Finally, provide your response in the SAME LANGUAGE as the user's original message
+1. Review the context and query carefully
+2. If the query is not in English, ensure you fully understand it using this English translation for reference: "${translationResult.isEnglish ? message : translationResult.englishVersion}"
+3. Provide your response in the SAME LANGUAGE as the user's original message: "${translationResult.originalText}"
 
-Follow these guidelines:
-Provide information strictly based on the given statement context.
-If information is not in the statement, politely explain that you don't have that specific data available.
-Maintain a professional yet warm tone throughout the conversation.
-Use WhatsApp-friendly formatting:
-Bold for important points
-Italics for emphasis
-Bullet points (*) for lists
-Numbers (1.) for step-by-step instructions
-for quoting statement details
-inline code for amounts or transaction names
-Keep paragraphs short and easy to read on mobile devices.
-Avoid complex formatting not supported by WhatsApp.
-Summarize key information at the end of longer responses.`,
+Follow these response guidelines:
+- Provide information strictly based on the given statement context
+- If information is not in the statement, politely explain that you don't have that specific data available
+- Maintain a professional yet warm tone throughout the conversation
+- Use WhatsApp-friendly formatting:
+  - Bold for important points
+  - Italics for emphasis
+  - Bullet points (*) for lists
+  - Numbers (1.) for step-by-step instructions
+  - for quoting statement details
+  - inline code for amounts or transaction names
+- Keep paragraphs short and easy to read on mobile devices
+- Avoid complex formatting not supported by WhatsApp
+- Summarize key information at the end of longer responses`
         },
         {
           role: "user",
-          content: `Hello! I'm looking at my credit card statement and have a question. Here's the relevant information:\n\n${context}\n\nCould you please help me with the following: ${message}`,
-        },
-      ],
+          content: `Hello! I'm looking at my credit card statement and have a question. Here's the relevant information:\n\n${context}\n\n${message}`
+        }
+      ]
     });
 
     const chatResult = await chatResponse.json();
     const aiResponse = chatResult.choices[0].message.content;
 
-    // Store AI response in chat history
     const { error: aiInsertError } = await supabase
       .from("chat_history")
       .insert({
@@ -150,20 +200,15 @@ Summarize key information at the end of longer responses.`,
       throw aiInsertError;
     }
 
-    // Send the AI response via WhatsApp
-    // const whatsappResult = await sendWhatsAppMessage(phoneNumber, aiResponse)
-
     console.log("Message sent and processed successfully");
     return {
       message: aiResponse,
       whatsapp_status: "sent",
-      // whatsapp_status: whatsappResult.success ? 'sent' : 'failed'
     };
   } catch (error) {
     console.error("Error processing message:", error);
     return {
-      message:
-        "I'm sorry, but there was an error processing your message. Please try again later.",
+      message: "I'm sorry, but there was an error processing your message. Please try again later.",
       whatsapp_status: "failed",
     };
   }

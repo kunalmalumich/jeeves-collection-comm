@@ -114,39 +114,19 @@ export async function sendMessage(
     const { originalEmbedding, englishEmbedding, translationResult } =
       await getEnhancedMultilingualEmbedding(message);
 
-    const [originalResults, englishResults] = await Promise.all([
-      supabase.rpc("match_documents", {
-        query_embedding: originalEmbedding,
-        match_threshold: 0.6,
-        match_count: 500,
-        p_business_id: orgId,
-      }),
-      supabase.rpc("match_documents", {
-        query_embedding: englishEmbedding,
-        match_threshold: 0.6,
-        match_count: 500,
-        p_business_id: orgId,
-      }),
-    ]);
+    const results = await supabase.rpc("match_documents", {
+      query_embedding: englishEmbedding,
+      match_threshold: 0.6,
+      match_count: 500,
+      p_business_id: orgId,
+    });
 
-    if (originalResults.error || englishResults.error) {
-      console.error(
-        "Error matching documents:",
-        originalResults.error || englishResults.error,
-      );
-      throw originalResults.error || englishResults.error;
+    if (results.error) {
+      console.error("Error matching documents:", results.error);
+      throw results.error;
     }
 
-    const allDocuments = [...(originalResults.data || [])];
-    if (!translationResult.isEnglish) {
-      const seenIds = new Set(allDocuments.map((doc) => doc.id));
-      englishResults.data?.forEach((doc: { id: string; content: string; similarity: number }) => {
-        if (!seenIds.has(doc.id)) {
-          allDocuments.push(doc);
-          seenIds.add(doc.id);
-        }
-      });
-    }
+    const allDocuments = [...(results.data || [])];
 
     const sortedDocuments = allDocuments
       .sort((a, b) => b.similarity - a.similarity)

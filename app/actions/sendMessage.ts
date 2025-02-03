@@ -48,19 +48,24 @@ Do not include any other text in your response.`,
   });
 
   const translationResult = await translationResponse.json();
-  console.log('Raw translation result:', JSON.stringify(translationResult, null, 2));
-  
-  if (!translationResult.choices || !translationResult.choices[0] || !translationResult.choices[0].message) {
-    console.error('Invalid translation response:', translationResult);
-    throw new Error('Failed to get valid translation response from OpenAI');
+  console.log(
+    "Raw translation result:",
+    JSON.stringify(translationResult, null, 2),
+  );
+
+  if (
+    !translationResult.choices ||
+    !translationResult.choices[0] ||
+    !translationResult.choices[0].message
+  ) {
+    console.error("Invalid translation response:", translationResult);
+    throw new Error("Failed to get valid translation response from OpenAI");
   }
-  
-  console.log('Translation message content:', translationResult.choices[0].message.content);
-  
+
   const parsedTranslation = JSON.parse(
     translationResult.choices[0].message.content,
   );
-  console.log('Parsed translation:', parsedTranslation);
+  console.log("Parsed translation:", parsedTranslation);
 
   const textsToEmbed = [parsedTranslation.originalText];
   if (!parsedTranslation.isEnglish) {
@@ -153,9 +158,11 @@ export async function sendMessage(
 
 1. Review the context and query carefully
 2. If the query is not in English, ensure you fully understand it using this English translation for reference: "${translationResult.isEnglish ? message : translationResult.englishVersion}"
-3. IMPORTANT LANGUAGE INSTRUCTION: ${translationResult.isEnglish ? 
-    "The original query was in English, so respond in English" : 
-    `The original query was in another language (specifically the language of: "${translationResult.originalText}"). You MUST respond in that same language, not in English`}
+3. IMPORTANT LANGUAGE INSTRUCTION: ${
+            translationResult.isEnglish
+              ? "The original query was in English, so respond in English"
+              : `The original query was in another language (specifically the language of: "${translationResult.originalText}"). You MUST respond in that same language, not in English`
+          }
 
 Follow these response guidelines:
 - Provide information strictly based on the given statement context

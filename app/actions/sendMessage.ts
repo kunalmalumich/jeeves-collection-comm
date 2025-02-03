@@ -1,4 +1,3 @@
-
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
@@ -38,18 +37,20 @@ async function getEnhancedMultilingualEmbedding(message: string) {
   "englishVersion": "the English translation or original text",
   "originalText": "the original input text"
 }
-Do not include any other text in your response.`
+Do not include any other text in your response.`,
       },
       {
         role: "user",
-        content: message
-      }
+        content: message,
+      },
     ],
-    temperature: 0
+    temperature: 0,
   });
 
   const translationResult = await translationResponse.json();
-  const parsedTranslation = JSON.parse(translationResult.choices[0].message.content);
+  const parsedTranslation = JSON.parse(
+    translationResult.choices[0].message.content,
+  );
 
   const textsToEmbed = [parsedTranslation.originalText];
   if (!parsedTranslation.isEnglish) {
@@ -64,10 +65,10 @@ Do not include any other text in your response.`
 
   return {
     originalEmbedding: embeddingResult.data[0].embedding,
-    englishEmbedding: parsedTranslation.isEnglish ? 
-      embeddingResult.data[0].embedding : 
-      embeddingResult.data[1].embedding,
-    translationResult: parsedTranslation
+    englishEmbedding: parsedTranslation.isEnglish
+      ? embeddingResult.data[0].embedding
+      : embeddingResult.data[1].embedding,
+    translationResult: parsedTranslation,
   };
 }
 
@@ -110,7 +111,7 @@ export async function sendMessage(
       throw insertError;
     }
 
-    const { originalEmbedding, englishEmbedding, translationResult } = 
+    const { originalEmbedding, englishEmbedding, translationResult } =
       await getEnhancedMultilingualEmbedding(message);
 
     const [originalResults, englishResults] = await Promise.all([
@@ -125,18 +126,21 @@ export async function sendMessage(
         match_threshold: 0.6,
         match_count: 500,
         p_business_id: orgId,
-      })
+      }),
     ]);
 
     if (originalResults.error || englishResults.error) {
-      console.error("Error matching documents:", originalResults.error || englishResults.error);
+      console.error(
+        "Error matching documents:",
+        originalResults.error || englishResults.error,
+      );
       throw originalResults.error || englishResults.error;
     }
 
     const allDocuments = [...(originalResults.data || [])];
     if (!translationResult.isEnglish) {
-      const seenIds = new Set(allDocuments.map(doc => doc.id));
-      englishResults.data?.forEach(doc => {
+      const seenIds = new Set(allDocuments.map((doc) => doc.id));
+      englishResults.data?.forEach((doc) => {
         if (!seenIds.has(doc.id)) {
           allDocuments.push(doc);
           seenIds.add(doc.id);
@@ -148,7 +152,7 @@ export async function sendMessage(
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 1000);
 
-    const context = sortedDocuments.map(doc => doc.content).join('\n\n');
+    const context = sortedDocuments.map((doc) => doc.content).join("\n\n");
 
     const chatResponse = await openai.createChatCompletion({
       model: "gpt-4",
@@ -174,13 +178,25 @@ Follow these response guidelines:
   - inline code for amounts or transaction names
 - Keep paragraphs short and easy to read on mobile devices
 - Avoid complex formatting not supported by WhatsApp
-- Summarize key information at the end of longer responses`
+- Summarize key information at the end of longer responses`,
         },
         {
           role: "user",
-          content: `Hello! I'm looking at my credit card statement and have a question. Here's the relevant information:\n\n${context}\n\n${message}`
-        }
-      ]
+          content: `Hello! I'm looking at my credit card statement and have a question. Here's the relevant information:
+          CONTEXT:
+        ${context}
+
+ORIGINAL QUERY (${translationResult.isEnglish ? "English" : "Non-English"}):
+${translationResult.originalText}
+
+${
+  !translationResult.isEnglish
+    ? `ENGLISH TRANSLATION:
+${translationResult.englishVersion}`
+    : ""
+}`,
+        },
+      ],
     });
 
     const chatResult = await chatResponse.json();
@@ -208,7 +224,8 @@ Follow these response guidelines:
   } catch (error) {
     console.error("Error processing message:", error);
     return {
-      message: "I'm sorry, but there was an error processing your message. Please try again later.",
+      message:
+        "I'm sorry, but there was an error processing your message. Please try again later.",
       whatsapp_status: "failed",
     };
   }

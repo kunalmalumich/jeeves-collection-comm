@@ -1,0 +1,150 @@
+const { Configuration, OpenAIApi } = require('openai');
+
+// Initialize OpenAI
+const openai = new OpenAIApi(new Configuration({
+  apiKey: process.env.OPENAI_API_KEY
+}));
+
+async function getEnhancedMultilingualEmbedding(message) {
+  // Create embeddings for both original message and its English translation in one API call
+  const embeddingResponse = await openai.createChatCompletion({
+    model: "gpt-4",
+    messages: [
+      {
+        role: "system",
+        content: `You are a translation assistant. For the given text:
+1. Detect if it's not in English
+2. If not English, translate to English while preserving key terms
+3. Return ONLY a JSON object in this format:
+{
+  "isEnglish": boolean,
+  "englishVersion": "the English translation or original text",
+  "originalText": "the original input text"
+}
+Do not include any other text in your response.`
+      },
+      {
+        role: "user",
+        content: message
+      }
+    ],
+    temperature: 0
+  });
+
+  const translationResult = JSON.parse(embeddingResponse.data.choices[0].message.content);
+
+  // Get embeddings for both versions if they're different
+  const textsToEmbed = [translationResult.originalText];
+  if (!translationResult.isEnglish) {
+    textsToEmbed.push(translationResult.englishVersion);
+  }
+
+  const embeddingsResponse = await openai.createEmbedding({
+    model: "text-embedding-ada-002",
+    input: textsToEmbed,
+  });
+  const embeddingResult = await embeddingsResponse.json();
+
+  return {
+    originalEmbedding: embeddingResult.data[0].embedding,
+    englishEmbedding: translationResult.isEnglish ? 
+      embeddingResult.data[0].embedding : 
+      embeddingResult.data[1].embedding,
+    translationResult
+  };
+}
+
+async function processMultilingualSearchAndChat(message, orgId) {
+  try {
+    // Get enhanced embeddings
+    const { originalEmbedding, englishEmbedding, translationResult } = 
+      await getEnhancedMultilingualEmbedding(message);
+
+    // Search with both embeddings and combine results
+    const [originalResults, englishResults] = await Promise.all([
+      supabase.rpc("match_documents", {
+        query_embedding: originalEmbedding,
+        match_threshold: 0.6,
+        match_count: 500,
+        p_business_id: orgId,
+      }),
+      supabase.rpc("match_documents", {
+        query_embedding: englishEmbedding,
+        match_threshold: 0.6,
+        match_count: 500,
+        p_business_id: orgId,
+      })
+    ]);
+
+    // Combine and deduplicate results
+    const allDocuments = [...(originalResults.data || [])];
+    if (!translationResult.isEnglish) {
+      const seenIds = new Set(allDocuments.map(doc => doc.id));
+      englishResults.data?.forEach(doc => {
+        if (!seenIds.has(doc.id)) {
+          allDocuments.push(doc);
+          seenIds.add(doc.id);
+        }
+      });
+    }
+
+    // Sort by similarity score and take top results
+    const sortedDocuments = allDocuments
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 1000);
+
+    // Extract context from matched documents
+    const context = sortedDocuments.map(doc => doc.content).join('\n\n');
+
+    // Single LLM call for response
+    const chatResponse = await openai.createChatCompletion({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are a friendly and helpful customer support representative for a credit card company. Follow these steps precisely:
+
+1. Review the context and query carefully
+2. If the query is not in English, ensure you fully understand it using this English translation for reference: "${translationResult.isEnglish ? message : translationResult.englishVersion}"
+3. Provide your response in the SAME LANGUAGE as the user's original message: "${translationResult.originalText}"
+
+Follow these response guidelines:
+- Provide information strictly based on the given statement context
+- If information is not in the statement, politely explain that you don't have that specific data available
+- Maintain a professional yet warm tone throughout the conversation
+- Use WhatsApp-friendly formatting:
+  - Bold for important points
+  - Italics for emphasis
+  - Bullet points (*) for lists
+  - Numbers (1.) for step-by-step instructions
+  - for quoting statement details
+  - inline code for amounts or transaction names
+- Keep paragraphs short and easy to read on mobile devices
+- Avoid complex formatting not supported by WhatsApp
+- Summarize key information at the end of longer responses`
+        },
+        {
+          role: "user",
+          content: `Hello! I'm looking at my credit card statement and have a question. Here's the relevant information:\n\n${context}\n\n${message}`
+        }
+      ]
+    });
+
+    return chatResponse.data.choices[0].message.content;
+
+  } catch (error) {
+    console.error('Error in processing:', error);
+    throw error;
+  }
+}
+
+// Usage example
+async function handleCustomerInquiry(message, orgId) {
+  try {
+    const response = await processMultilingualSearchAndChat(message, orgId);
+    return response;
+  } catch (error) {
+    console.error('Error handling customer inquiry:', error);
+    throw error;
+  }
+}

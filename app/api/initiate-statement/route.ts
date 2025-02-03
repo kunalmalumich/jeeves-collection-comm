@@ -86,7 +86,7 @@ async function startStatementConversation(
             whatsAppNumber: cleanNumber,
           }),
           messagingBinding: {
-            type: 'whatsapp',
+            type: "whatsapp",
             address: formattedPhone,
             proxyAddress: `whatsapp:${cleanProxyNumber}`,
           },
@@ -119,7 +119,7 @@ async function startStatementConversation(
     // Get latest statement
     const latestStatement = await supabase
       .from("credit_card_statements")
-      .select("public_url")
+      .select("file_path")
       .eq("phone_number", customerPhone)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -129,13 +129,14 @@ async function startStatementConversation(
       throw new Error(`No statement found for phone number: ${customerPhone}`);
     }
 
-    const pdfUrl = latestStatement.data.public_url;
+    const pdfUrl = latestStatement.data.file_path.trim().replace(/\s+/g, "%20");
 
     // Log template variables
     console.log("Template variables:", {
       month: statementData.month,
       amount: statementData.amount,
       dueDate: statementData.dueDate,
+      pdfUrl: pdfUrl,
     });
 
     /* await client.messages.create({
@@ -155,8 +156,11 @@ async function startStatementConversation(
       from: `whatsapp:${env.TWILIO_WHATSAPP_FROM}`,
       to: formattedPhone,
       body: "We hope you're doing well. Please find your latest credit statement attached for your review. If you have any questions or need further assistance, feel free to reach out to us via email at soporte@tryjeeves.com. Thank you for choosing Jeeves.",
-      mediaUrl: [pdfUrl],
+      // mediaUrl: [pdfUrl],
       contentSid: env.TWILIO_TEMPLATE_CONTENT_SID,
+      contentVariables: JSON.stringify({
+        "1": pdfUrl,
+      }),
     });
 
     // Add welcome message to conversation

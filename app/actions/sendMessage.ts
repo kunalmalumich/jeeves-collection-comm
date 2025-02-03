@@ -199,6 +199,7 @@ ${translationResult.englishVersion}`
     });
 
     const chatResult = await chatResponse.json();
+    console.log("Chat result received:", JSON.stringify(chatResult, null, 2));
     const aiResponse = chatResult.choices[0].message.content;
 
     const { error: aiInsertError } = await supabase

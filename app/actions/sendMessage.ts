@@ -48,14 +48,19 @@ Do not include any other text in your response.`,
   });
 
   const translationResult = await translationResponse.json();
+  console.log('Raw translation result:', JSON.stringify(translationResult, null, 2));
+  
   if (!translationResult.choices || !translationResult.choices[0] || !translationResult.choices[0].message) {
     console.error('Invalid translation response:', translationResult);
     throw new Error('Failed to get valid translation response from OpenAI');
   }
   
+  console.log('Translation message content:', translationResult.choices[0].message.content);
+  
   const parsedTranslation = JSON.parse(
     translationResult.choices[0].message.content,
   );
+  console.log('Parsed translation:', parsedTranslation);
 
   const textsToEmbed = [parsedTranslation.originalText];
   if (!parsedTranslation.isEnglish) {

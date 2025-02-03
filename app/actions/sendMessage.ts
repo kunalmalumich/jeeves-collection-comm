@@ -140,7 +140,7 @@ export async function sendMessage(
     const allDocuments = [...(originalResults.data || [])];
     if (!translationResult.isEnglish) {
       const seenIds = new Set(allDocuments.map((doc) => doc.id));
-      englishResults.data?.forEach((doc) => {
+      englishResults.data?.forEach((doc: { id: string; content: string; similarity: number }) => {
         if (!seenIds.has(doc.id)) {
           allDocuments.push(doc);
           seenIds.add(doc.id);

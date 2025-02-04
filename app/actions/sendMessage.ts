@@ -48,11 +48,6 @@ Do not include any other text in your response.`,
   });
 
   const translationResult = await translationResponse.json();
-  console.log(
-    "Raw translation result:",
-    JSON.stringify(translationResult, null, 2),
-  );
-
   if (
     !translationResult.choices ||
     !translationResult.choices[0] ||
@@ -65,12 +60,13 @@ Do not include any other text in your response.`,
   const parsedTranslation = JSON.parse(
     translationResult.choices[0].message.content,
   );
-  console.log("Parsed translation:", parsedTranslation);
+  // console.log("Parsed translation:", parsedTranslation);
 
-  const textsToEmbed = [parsedTranslation.originalText];
-  if (!parsedTranslation.isEnglish) {
-    textsToEmbed.push(parsedTranslation.englishVersion);
-  }
+  const textsToEmbed = [
+    parsedTranslation.isEnglish
+      ? parsedTranslation.originalText
+      : parsedTranslation.englishVersion,
+  ];
 
   const embeddingsResponse = await openai.createEmbedding({
     model: "text-embedding-ada-002",
@@ -80,11 +76,18 @@ Do not include any other text in your response.`,
 
   return {
     originalEmbedding: embeddingResult.data[0].embedding,
-    englishEmbedding: parsedTranslation.isEnglish
-      ? embeddingResult.data[0].embedding
-      : embeddingResult.data[1].embedding,
+    englishEmbedding: embeddingResult.data[0].embedding,
     translationResult: parsedTranslation,
   };
+}
+
+function normalizePhoneNumber(phoneNumber) {
+  if (phoneNumber.startsWith("+52")) {
+    return phoneNumber.replace(/^\+521/, "+52"); // Convert +521XXXXXXXXXX to +52XXXXXXXXXX
+  } else if (phoneNumber.startsWith("+55")) {
+    return phoneNumber.replace(/^(\+55\d{2})9?(\d{8})$/, "$1$2"); // Convert +55XX9XXXXXXXX to +55XXXXXXXXXX
+  }
+  return phoneNumber; // Return unchanged if it's not +52 or +55
 }
 
 export async function sendMessage(
@@ -93,12 +96,18 @@ export async function sendMessage(
   message: string,
 ) {
   try {
-    console.log("Finding business_id for phone number:", phoneNumber);
+    //console.log("Finding business_id for phone number:", phoneNumber);
+    const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
 
     const { data: statements, error: statementsError } = await supabase
       .from("credit_card_statements")
       .select("business_id")
-      .eq("phone_number", phoneNumber)
+      .or(
+        `phone_number.eq.${normalizedPhoneNumber},` +
+          (normalizedPhoneNumber.startsWith("+52")
+            ? `phone_number.eq.+521${normalizedPhoneNumber.slice(3)}`
+            : `phone_number.eq.+55${normalizedPhoneNumber.slice(3, 5)}9${normalizedPhoneNumber.slice(5)}`),
+      )
       .limit(1);
 
     if (statementsError) {
@@ -112,7 +121,7 @@ export async function sendMessage(
     }
 
     const orgId = statements[0].business_id;
-    console.log("Found business_id:", orgId);
+    //console.log("Found business_id:", orgId);
 
     const { error: insertError } = await supabase.from("chat_history").insert({
       business_id: orgId,
@@ -129,7 +138,7 @@ export async function sendMessage(
     const { originalEmbedding, englishEmbedding, translationResult } =
       await getEnhancedMultilingualEmbedding(message);
 
-    const results = await supabase.rpc("match_documents", {
+    /*const results = await supabase.rpc("match_documents", {
       query_embedding: englishEmbedding,
       match_threshold: 0.6,
       match_count: 500,
@@ -147,81 +156,66 @@ export async function sendMessage(
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 1000);
 
-    const context = sortedDocuments.map((doc) => doc.content).join("\n\n");
+    const context = sortedDocuments.map((doc) => doc.content).join("\n\n");*/
+
+    // Search for relevant content in the database
+
+    const { data: documents, error: matchError } = await supabase.rpc(
+      "match_documents",
+      {
+        query_embedding: englishEmbedding,
+        match_threshold: 0.6,
+        match_count: 1000,
+        p_business_id: orgId,
+      },
+    );
+
+    if (matchError) {
+      console.error("Error matching documents:", matchError);
+      throw matchError;
+    }
+
+    // Prepare context from matched documents
+    const context = documents.map((doc: any) => doc.content).join("\n\n");
+
+    console.log("Kunal - message : ");
 
     const chatResponse = await openai.createChatCompletion({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `You are a friendly and helpful customer support representative for a credit card company. Follow these steps precisely:
-
-1. Review the context and query carefully
-2. If the query is not in English, ensure you fully understand it using this English translation for reference: "${translationResult.isEnglish ? message : translationResult.englishVersion}"
-3. IMPORTANT LANGUAGE INSTRUCTION: ${
-            translationResult.isEnglish
-              ? "The original query was in English, so respond in English"
-              : `The original query was in another language (specifically the language of: "${translationResult.originalText}"). You MUST respond in that same language, not in English`
-          }
-
-Follow these response guidelines:
-- Provide information strictly based on the given statement context
-- If information is not in the statement, politely explain that you don't have that specific data available
-- Maintain a professional yet warm tone throughout the conversation
-- Use WhatsApp-friendly formatting:
-  - Bold for important points
-  - Italics for emphasis
-  - Bullet points (*) for lists
-  - Numbers (1.) for step-by-step instructions
-  - for quoting statement details
-  - inline code for amounts or transaction names
-- Keep paragraphs short and easy to read on mobile devices
-- Avoid complex formatting not supported by WhatsApp
-- Summarize key information at the end of longer responses`,
+          content: `You are a friendly and helpful customer support representative for a credit card company.
+    Follow these response guidelines:
+    - Provide information strictly based on the given statement context
+    - If information is not in the statement, politely explain that you don't have that specific data available
+    - Maintain a professional yet warm tone throughout the conversation
+    - Use WhatsApp-friendly formatting:
+      - Bold for important points
+      - Italics for emphasis
+      - Bullet points (*) for lists
+      - Numbers (1.) for step-by-step instructions
+      - for quoting statement details
+      - inline code for amounts or transaction names
+    - Keep paragraphs short and easy to read on mobile devices
+    - Avoid complex formatting not supported by WhatsApp
+    - Summarize key information at the end of longer responses
+    - IMPORTANT LANGUAGE INSTRUCTION: ${
+      translationResult.isEnglish
+        ? "The original query was in English, so respond in English"
+        : `The original query was in another language (specifically the language of: "${translationResult.originalText}"). You MUST respond in that same language`
+    }`,
         },
         {
           role: "user",
           content: `Hello! I'm looking at my credit card statement and have a question. Here's the relevant information:
-          CONTEXT:
-        ${context}
-
-ORIGINAL QUERY (${translationResult.isEnglish ? "English" : "Non-English"}):
-${translationResult.originalText}
-
-${
-  !translationResult.isEnglish
-    ? `ENGLISH TRANSLATION:
-${translationResult.englishVersion}`
-    : ""
-}`,
+    CONTEXT: ${context}
+    Please help me answer the question - ${translationResult.isEnglish ? translationResult.originalText : translationResult.englishVersion}`,
         },
       ],
     });
 
-    // Log the complete request being sent to the LLM
-    console.log("Complete LLM Request:", {
-      model: "gpt-4",
-      context: context,
-      originalQuery: translationResult.originalText,
-      isEnglish: translationResult.isEnglish,
-      englishTranslation: !translationResult.isEnglish ? translationResult.englishVersion : null,
-      fullPrompt: `Hello! I'm looking at my credit card statement and have a question. Here's the relevant information:
-      CONTEXT:
-    ${context}
-
-ORIGINAL QUERY (${translationResult.isEnglish ? "English" : "Non-English"}):
-${translationResult.originalText}
-
-${
-  !translationResult.isEnglish
-    ? `ENGLISH TRANSLATION:
-${translationResult.englishVersion}`
-    : ""
-}`
-    });
-
     const chatResult = await chatResponse.json();
-    console.log("Chat result received:", JSON.stringify(chatResult, null, 2));
     const aiResponse = chatResult.choices[0].message.content;
 
     const { error: aiInsertError } = await supabase

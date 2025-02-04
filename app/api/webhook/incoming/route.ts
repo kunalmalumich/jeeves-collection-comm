@@ -116,11 +116,11 @@ export async function POST(request: NextRequest) {
     }
     const cleanProxyNumber = env.TWILIO_WHATSAPP_FROM.replace("whatsapp:", "");
 
-    console.log("Debugging participant creation:", {
+    /*console.log("Debugging participant creation:", {
       conversationSid: conversation.sid,
       cleanNumber,
       cleanProxyNumber,
-    });
+    });*/
 
     try {
       const participant = await (client.conversations.v1
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
           },
         } as any) as any);
 
-      console.log("Successfully created participant:", participant);
+      // console.log("Successfully created participant:", participant);
     } catch (error) {
       if (error instanceof Error) {
         console.error("Detailed error in participant creation:", {

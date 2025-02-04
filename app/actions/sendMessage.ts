@@ -81,7 +81,7 @@ Do not include any other text in your response.`,
   };
 }
 
-function normalizePhoneNumber(phoneNumber) {
+function normalizePhoneNumber(phoneNumber: string) {
   if (phoneNumber.startsWith("+52")) {
     return phoneNumber.replace(/^\+521/, "+52"); // Convert +521XXXXXXXXXX to +52XXXXXXXXXX
   } else if (phoneNumber.startsWith("+55")) {
